@@ -8,10 +8,10 @@ from PIL import Image
 
 
 class Map_Obj():
-    def __init__(self, task=1):
+    def __init__(self, task=1, resources_path=''):
         self.start_pos, self.goal_pos, self.end_goal_pos, self.path_to_map = self.fill_critical_positions(
             task)
-        self.int_map, self.str_map = self.read_map(self.path_to_map)
+        self.int_map, self.str_map = self.read_map(resources_path + self.path_to_map)
         self.tmp_cell_value = self.get_cell_value(self.goal_pos)
         self.set_cell_value(self.start_pos, ' S ')
         self.set_cell_value(self.goal_pos, ' G ')
@@ -238,3 +238,15 @@ class Map_Obj():
                                y * scale + j] = colors[map[y][x]]
         # Show image
         image.show()
+
+    def get_adjacent_pos(self, pos):
+        """ returns position of adjacent (non-negative) nodes """
+        assert self.int_map[pos[0], pos[1]] != -1
+        result = []
+        n = [0, 1, 0, -1, 0]
+        for i in range(0, len(n)-1):
+            adj_pos = [pos[0]+n[i], pos[1]+n[i+1]]
+            print(self.int_map[adj_pos[0], adj_pos[1]])
+            if self.int_map[adj_pos[0], adj_pos[1]] != -1:
+                result.append(adj_pos)
+        return result
