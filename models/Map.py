@@ -245,7 +245,7 @@ class Map_Obj():
         result = []
         n = [0, 1, 0, -1, 0]
         for i in range(0, len(n)-1):
-            adj_pos = [pos[0]+n[i], pos[1]+n[i+1]]
+            adj_pos = (pos[0]+n[i], pos[1]+n[i+1])
             print(self.int_map[adj_pos[0], adj_pos[1]])
             if self.int_map[adj_pos[0], adj_pos[1]] != -1:
                 result.append(adj_pos)

@@ -11,6 +11,7 @@ class Search():
         self.goal_pos = self.mp.get_goal_pos()
         self.open_nodes = []
         self.closed_nodes = []
+        self.pos_to_obj = {}
         super(self)
 
     def best_first_search(self):
@@ -24,27 +25,51 @@ class Search():
         h = self.h(pos0)
         f = g + h
         n0 = SearchNode(state0, g, h, f, None, children0, pos0)
+        self.pos_to_obj[tuple(pos0)] = n0
         self.push_to_open(n0)
 
         # Agenda loop:
-        solution = False    # variable might be redundant
+        solution = False  # variable might be redundant
         while not solution:
-            assert self.open_nodes      # Throws exception if array is empty
-            x = self.pop_open()         # Pops open node with lowest cost
+            assert self.open_nodes  # Throws exception if array is empty
+            x = self.pop_open()  # Pops open node with lowest cost
             self.push_to_closed(x)
             if x.get_pos() == self.goal_pos:
-                return x    # TODO: Save solution path
-            succ = self.mp.get_adjacent_nodes(x.get_pos())   # Same as generate_all_successors(X) in assignment
-            # TODO: IMPLEMENT HASHMAP/DICT FROM POSITION TO NODE TO CHECK IF SEARCH_NODE OBJECT IS ALREADY CONSTRUCTED
-            # TODO: IMPLEMENT REST OF FUNC
+                return x  # TODO: Save solution path. Maybe not, just store as parent
+            succ = self.mp.get_adjacent_nodes(x.get_pos())  # Same as generate_all_successors(X) in assignment
+            for s_pos in succ:
+                if s_pos in self.pos_to_obj:
+                    # TODO: CHECK FOR DIFFERENCE IN STATE
+                    s = self.pos_to_obj[s_pos]  # Might have to create other variable instead
+                    x.kids.append(s)
+                else:   # Construct new node
+                    g = x.g + 1  # TODO: change 1 to arc-cost
+                    h = self.h(s_pos)
+                    f = g + h
+                    kids = self.mp.get_adjacent_pos(s_pos)
+                    s = SearchNode(self.closed_nodes, g, h, f, x, kids, s_pos)
+                    self.pos_to_obj[s_pos] = s
+                if (s not in self.open_nodes) and (s not in self.closed_nodes):
+                    self.attach_and_eval(s, x)
+                    self.push_to_open(s)
+                elif x.g + 1 < s.g:     # TODO: endre 1 til arc-cost
+                    self.attach_and_eval(s, x)
+                    if s in self.closed_nodes:
+                        self.propagate_path_improvements(s)
 
     def attach_and_eval(self, c, p):
-        # TODO: IMPLEMENT METHOD
-        pass
+        c.parent = p
+        c.g = p.g + 1   # TODO: Change 1 to arc-cost
+        c.h = self.h(c)
+        c.f = c.g + c.h
 
     def propagate_path_improvements(self, p):
-        # TODO: IMPLEMENT METHOD
-        pass
+        for c in p.kids:
+            if p.g + 1 < c.g:   # TODO: Change 1 to arc-cost
+                c.p = p
+                c.g = p.g + 1   # TODO: Change 1 to arc-cost
+                c.f = c.g + c.h
+                self.propagate_path_improvements(c)
 
     def h(self, x):
         return self._manhattan_distance(x, self.mp.get_goal_pos())
