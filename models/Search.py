@@ -8,18 +8,17 @@ class Search():
 
     def __init__(self, mp):
         self.mp = mp
-        self.goal_pos = self.mp.get_goal_pos()
+        self.goal_pos = tuple(self.mp.get_goal_pos())
         self.open_nodes = []
         self.closed_nodes = []
         self.pos_to_obj = {}
-        super(self)
 
     def best_first_search(self):
         """ Implementation of pseudocode in part 1 of assignment """
 
         # Creating start node
         state0 = State([])
-        pos0 = self.mp.get_start_pos()
+        pos0 = tuple(self.mp.get_start_pos())
         children0 = self.mp.get_adjacent_pos(pos0)
         g = 0
         h = self.h(pos0)
@@ -36,7 +35,7 @@ class Search():
             self.push_to_closed(x)
             if x.get_pos() == self.goal_pos:
                 return x  # TODO: Save solution path. Maybe not, just store as parent
-            succ = self.mp.get_adjacent_nodes(x.get_pos())  # Same as generate_all_successors(X) in assignment
+            succ = self.mp.get_adjacent_pos(x.get_pos())  # Same as generate_all_successors(X) in assignment
             for s_pos in succ:
                 if s_pos in self.pos_to_obj:
                     # TODO: CHECK FOR DIFFERENCE IN STATE
@@ -60,7 +59,7 @@ class Search():
     def attach_and_eval(self, c, p):
         c.parent = p
         c.g = p.g + 1   # TODO: Change 1 to arc-cost
-        c.h = self.h(c)
+        c.h = self.h(c.get_pos())
         c.f = c.g + c.h
 
     def propagate_path_improvements(self, p):
@@ -75,11 +74,11 @@ class Search():
         return self._manhattan_distance(x, self.mp.get_goal_pos())
 
     def _manhattan_distance(self, a, b):
-        return sum(abs(b[0] - a[0]), abs(b[1] - a[1]))
+        return abs(b[0] - a[0]) + abs(b[1] - a[1])
 
     def __sort_open(self):
         """ Sorts open in ascending order """
-        self.open_nodes.sort()
+        self.open_nodes.sort(key=lambda node: node.f)
 
     def pop_open(self):
         """ Pops first (top) element in open"""
