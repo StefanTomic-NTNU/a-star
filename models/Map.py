@@ -296,32 +296,47 @@ class Map_Obj():
             ' P ': (3, 223, 159)
         }
         # Go through image and set pixel color for every position
-        for y in range(height):
-            for x in range(width):
+        set_pixel = time.time()
+        for y in range(height):     # f.eks 1-100
+            for x in range(width):  # f.eks 1-100
                 if str_map[y][x] not in colors: continue
-                for i in range(scale):
-                    for j in range(scale):
+                for i in range(scale):      # 20
+                    for j in range(scale):  # 20
                         pixels[x * scale + i,
                                y * scale + j] = colors[str_map[y][x]]
+
+
+        print("--- %s seconds --- SET PIXEL" % (time.time() - set_pixel))
         # Save image
+        save = time.time()
         fp = filepath + r'\\resources\\images\\frame' + str(nr) + '.png'
         print(fp)
         image.save(fp, 'png')
+        print("--- %s seconds --- SAVE" % (time.time() - save))
 
     def incorporate_search(self, str_map, searched_pos, path):
-        # new_str_map = [str_map[pos[0]][pos[1]]='E' for pos in searched_pos]
+        start = tuple(self.start_pos)
+        goal = tuple(self.goal_pos)
         print(searched_pos)
         for y, x_list in enumerate(str_map):
             for x, value in enumerate(x_list):
-                if (y, x) in searched_pos:
+                if (y, x) in searched_pos and (y, x) != start and (y, x) != goal:
                     str_map[y][x] = ' E '
-        if path and isinstance(path, list):
-            print(type(path))
+        if path:
             for y, x_list in enumerate(str_map):
                 for x, value in enumerate(x_list):
-                    if (y, x) in path:
+                    if (y, x) in path and (y, x) != start and (y, x) != goal:
                         str_map[y][x] = ' P '
         return str_map
 
     def animate_search(self, filepath):
-        pass
+
+        # filepaths
+        fp_in = filepath + r'\\resources\\images\\frame*' + '.png'
+        fp_out = filepath + r'\\resources\\gifs\\animation' + '.GIF'
+
+        # https://pillow.readthedocs.io/en/stable/handbook/image-file-formats.html#gif
+        img, *imgs = [Image.open(f) for f in sorted(glob.glob(fp_in))]
+        img.save(fp=fp_out, format='GIF', append_images=imgs, interlace=False,
+                 comment='A* algorithm', optimize=False,
+                 save_all=True, duration=1000, loop=0)

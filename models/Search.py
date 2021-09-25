@@ -7,7 +7,7 @@ import time
 class Search():
     """ Represents a search algorithm """
 
-    def __init__(self, mp, filepath, max_iterations=1000):
+    def __init__(self, mp, filepath, max_iterations=1000, animate=False):
         self.mp = mp
         self.goal_pos = tuple(self.mp.get_goal_pos())
         self.open_nodes = []
@@ -15,6 +15,7 @@ class Search():
         self.pos_to_obj = {}
         self.filepath = filepath
         self.max_iterations = max_iterations
+        self.animate = animate
 
     def best_first_search(self):
         """ Implementation of pseudocode in part 1 of assignment """
@@ -34,12 +35,13 @@ class Search():
         iterations = 0
         while iterations < self.max_iterations:
             iterations += 1
-            # self.save_img(self.filepath, iterations)
+            if self.animate:
+                self.save_img(self.filepath, iterations)
             assert self.open_nodes  # Throws exception if array is empty
             x = self.pop_open()  # Pops open node with lowest cost
             self.push_to_closed(x)
             if x.get_pos() == self.goal_pos:
-                return x  # TODO: Save solution path. Maybe not, just store as parent
+                return x
             succ = self.mp.get_adjacent_pos(x.get_pos())  # Same as generate_all_successors(X) in assignment
             for s_pos in succ:
                 if s_pos in self.pos_to_obj:
@@ -56,39 +58,44 @@ class Search():
                 if (s not in self.open_nodes) and (s not in self.closed_nodes):
                     self.attach_and_eval(s, x)
                     self.push_to_open(s)
-                elif x.g + 1 < s.g:     # TODO: endre 1 til arc-cost
+                elif x.g + self.get_arc_cost(x.pos, s.pos) < s.g:     # TODO: endre 1 til arc-cost
                     self.attach_and_eval(s, x)
                     if s in self.closed_nodes:
                         self.propagate_path_improvements(s)
 
     def find_best_path(self):
+        start_time = time.time()
         best_path = []
+        self.save_img(best_path, self.max_iterations*3)
         goal = self.best_first_search()
         best_path.append(goal.pos)
         parent = goal.parent
         iterations = self.max_iterations    # To distinguish between solution and search-frames
         while parent:
             iterations += 1
-            # self.save_img(self.filepath, iterations)
+            if self.animate:
+                self.save_img(best_path, iterations)
             best_path.append(parent.pos)
             parent = parent.parent
         best_path.reverse()
-        start_time = time.time()
-        self.save_img(self.filepath, iterations)
-        print("--- %s seconds --- TOTAL" % (time.time() - start_time))
+        self.save_img(best_path, iterations*2)
+         # if self.animate:
+        # self.mp.animate_search(self.filepath)
+        print("--- %s seconds --- TOTAL ALGO TIME" % (time.time() - start_time))
         return best_path
 
     def attach_and_eval(self, c, p):
         c.parent = p
-        c.g = p.g + 1   # TODO: Change 1 to arc-cost
+        c.g = p.g + self.get_arc_cost(p.pos, c.pos)   # TODO: Change 1 to arc-cost
         c.h = self.h(c.get_pos())
         c.f = c.g + c.h
 
     def propagate_path_improvements(self, p):
         for c in p.kids:
-            if p.g + 1 < c.g:   # TODO: Change 1 to arc-cost
+            arc_cost = self.get_arc_cost(p.pos, c.pos)
+            if p.g + arc_cost < c.g:   # TODO: Change 1 to arc-cost
                 c.p = p
-                c.g = p.g + 1   # TODO: Change 1 to arc-cost
+                c.g = p.g + arc_cost   # TODO: Change 1 to arc-cost
                 c.f = c.g + c.h
                 self.propagate_path_improvements(c)
 
@@ -97,6 +104,9 @@ class Search():
 
     def _manhattan_distance(self, a, b):
         return abs(b[0] - a[0]) + abs(b[1] - a[1])
+
+    def get_arc_cost(self, a, b):
+        return self.mp.int_map[b[0], b[1]]
 
     def __sort_open(self):
         """ Sorts open in ascending order """
@@ -118,7 +128,7 @@ class Search():
     def save_img(self, path, nr):
         closed_nodes_pos = [node.pos for node in self.closed_nodes]
         str_map = self.mp.incorporate_search(self.mp.str_map, closed_nodes_pos, path)
-        # self.mp.print_map(str_map)
-        save_map_time = time.time()
+        print(str_map)
         self.mp.save_map(str_map, nr, self.filepath)
-        print("--- %s seconds --- SAVE MAP" % (time.time() - save_map_time))
+
+
