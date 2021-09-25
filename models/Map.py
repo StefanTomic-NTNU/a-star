@@ -3,6 +3,8 @@ import numpy as np
 np.set_printoptions(threshold=np.inf, linewidth=300)
 import time
 
+import os
+import glob
 import pandas as pd
 from PIL import Image
 
@@ -240,7 +242,11 @@ class Map_Obj():
         image.show()
 
     def get_adjacent_pos(self, pos):
-        """ returns position of adjacent (non-negative) nodes """
+        """
+        A function used to get positions adjacent to given position (kids)
+        :param: pos: tuple representing x,y coordinates
+        :return: position of adjacent (non-negative) nodes
+        """
         assert self.int_map[pos[0], pos[1]] != -1
         result = []
         n = [0, 1, 0, -1, 0]
@@ -249,3 +255,73 @@ class Map_Obj():
             if self.int_map[adj_pos[0], adj_pos[1]] != -1:
                 result.append(adj_pos)
         return result
+
+    def visualize_path(self, path):
+        """
+        A function used to animate a path on a map
+        :param: path: list of tuples representing x,y coordinates of path
+        :return: nothing
+        """
+        for pos in path:
+            pass
+
+    def save_map(self, str_map, nr, filepath):
+        """
+        A function used to draw the map as an image and show it.
+        :param str_map: map to use
+        :param nr: image-number (iteration)
+        :return: nothing.
+        """
+        width = str_map.shape[1]
+        height = str_map.shape[0]
+        # Define scale of the image
+        scale = 20
+        # Create an all-yellow image
+        image = Image.new('RGB', (width * scale, height * scale),
+                          (255, 255, 0))
+        # Load image
+        pixels = image.load()
+
+        # Define what colors to give to different values of the string map (undefined values will remain yellow, this is
+        # how the yellow path is painted)
+        colors = {
+            ' # ': (211, 33, 45),
+            ' . ': (215, 215, 215),
+            ' , ': (166, 166, 166),
+            ' : ': (96, 96, 96),
+            ' ; ': (36, 36, 36),
+            ' S ': (255, 0, 255),
+            ' G ': (0, 128, 255),
+            ' E ': (255, 123, 27),
+            ' P ': (3, 223, 159)
+        }
+        # Go through image and set pixel color for every position
+        for y in range(height):
+            for x in range(width):
+                if str_map[y][x] not in colors: continue
+                for i in range(scale):
+                    for j in range(scale):
+                        pixels[x * scale + i,
+                               y * scale + j] = colors[str_map[y][x]]
+        # Save image
+        fp = filepath + r'\\resources\\images\\frame' + str(nr) + '.png'
+        print(fp)
+        image.save(fp, 'png')
+
+    def incorporate_search(self, str_map, searched_pos, path):
+        # new_str_map = [str_map[pos[0]][pos[1]]='E' for pos in searched_pos]
+        print(searched_pos)
+        for y, x_list in enumerate(str_map):
+            for x, value in enumerate(x_list):
+                if (y, x) in searched_pos:
+                    str_map[y][x] = ' E '
+        if path and isinstance(path, list):
+            print(type(path))
+            for y, x_list in enumerate(str_map):
+                for x, value in enumerate(x_list):
+                    if (y, x) in path:
+                        str_map[y][x] = ' P '
+        return str_map
+
+    def animate_search(self, filepath):
+        pass

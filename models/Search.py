@@ -2,16 +2,19 @@ from .Map import Map_Obj
 from .SearchNode import SearchNode
 from .State import State
 
+import time
 
 class Search():
     """ Represents a search algorithm """
 
-    def __init__(self, mp):
+    def __init__(self, mp, filepath, max_iterations=1000):
         self.mp = mp
         self.goal_pos = tuple(self.mp.get_goal_pos())
         self.open_nodes = []
         self.closed_nodes = []
         self.pos_to_obj = {}
+        self.filepath = filepath
+        self.max_iterations = max_iterations
 
     def best_first_search(self):
         """ Implementation of pseudocode in part 1 of assignment """
@@ -28,8 +31,10 @@ class Search():
         self.push_to_open(n0)
 
         # Agenda loop:
-        solution = False  # variable might be redundant
-        while not solution:
+        iterations = 0
+        while iterations < self.max_iterations:
+            iterations += 1
+            # self.save_img(self.filepath, iterations)
             assert self.open_nodes  # Throws exception if array is empty
             x = self.pop_open()  # Pops open node with lowest cost
             self.push_to_closed(x)
@@ -38,7 +43,7 @@ class Search():
             succ = self.mp.get_adjacent_pos(x.get_pos())  # Same as generate_all_successors(X) in assignment
             for s_pos in succ:
                 if s_pos in self.pos_to_obj:
-                    # TODO: CHECK FOR DIFFERENCE IN STATE
+                    # TODO: CHECK FOR DIFFERENCE IN STATE?
                     s = self.pos_to_obj[s_pos]  # Might have to create other variable instead
                     x.kids.append(s)
                 else:   # Construct new node
@@ -61,10 +66,16 @@ class Search():
         goal = self.best_first_search()
         best_path.append(goal.pos)
         parent = goal.parent
+        iterations = self.max_iterations    # To distinguish between solution and search-frames
         while parent:
-            print(parent.pos)
+            iterations += 1
+            # self.save_img(self.filepath, iterations)
             best_path.append(parent.pos)
             parent = parent.parent
+        best_path.reverse()
+        start_time = time.time()
+        self.save_img(self.filepath, iterations)
+        print("--- %s seconds --- TOTAL" % (time.time() - start_time))
         return best_path
 
     def attach_and_eval(self, c, p):
@@ -103,3 +114,11 @@ class Search():
     def push_to_closed(self, node):
         """ Adds SearchNode to open """
         self.closed_nodes.append(node)
+
+    def save_img(self, path, nr):
+        closed_nodes_pos = [node.pos for node in self.closed_nodes]
+        str_map = self.mp.incorporate_search(self.mp.str_map, closed_nodes_pos, path)
+        # self.mp.print_map(str_map)
+        save_map_time = time.time()
+        self.mp.save_map(str_map, nr, self.filepath)
+        print("--- %s seconds --- SAVE MAP" % (time.time() - save_map_time))
