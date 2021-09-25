@@ -56,6 +56,17 @@ class Search():
                     if s in self.closed_nodes:
                         self.propagate_path_improvements(s)
 
+    def find_best_path(self):
+        best_path = []
+        goal = self.best_first_search()
+        best_path.append(goal.pos)
+        parent = goal.parent
+        while parent:
+            print(parent.pos)
+            best_path.append(parent.pos)
+            parent = parent.parent
+        return best_path
+
     def attach_and_eval(self, c, p):
         c.parent = p
         c.g = p.g + 1   # TODO: Change 1 to arc-cost
