@@ -1,6 +1,4 @@
-
-
-class SearchNode():
+class SearchNode:
     """ Represents the searchable nodes in a graph """
 
     def __init__(self, g, h, parent, kids, pos):

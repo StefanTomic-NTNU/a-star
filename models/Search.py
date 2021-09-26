@@ -4,7 +4,7 @@ from .SearchNode import SearchNode
 import time
 
 
-class Search():
+class Search:
     """ Represents a search algorithm """
 
     def __init__(self, mp, root_filepath, max_iterations=1000, animate=False):

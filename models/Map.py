@@ -358,22 +358,26 @@ class Map_Obj():
         :param root_filepath: Filepath to root of project
         :return: Nothing
         """
-        print('Animating')
+        print('Animating..')
 
         fp_out = root_filepath + r'\\resources\\gif\\task' + str(self.task) + r'\\animation.gif'
 
         figure = plt.figure(figsize=(8, 7))
         plt.xticks([]), plt.yticks([])
 
-        start = patch.Patch(color='purple', label='Start')
-        goal = patch.Patch(color='blue', label='Goal')
-        wall = patch.Patch(color='red', label='Wall')
-        arc_cost = patch.Patch(color='gray', label='Arch cost, \ndarker is higher')
-        explored = patch.Patch(color='orange', label='Explored')
-        best_path = patch.Patch(color='turquoise', label='Best path')
+        start = patch.Patch(color='#ff00ff', label='Start')
+        goal = patch.Patch(color='#0080ff', label='Goal')
+        wall = patch.Patch(color='#d3212d', label='Wall')
+        explored = patch.Patch(color='#ff7b1b', label='Explored')
+        best_path = patch.Patch(color='#03df9f', label='Best path')
+        arc_cost1 = patch.Patch(color='#d7d7d7', label='Tile cost 1')
+        arc_cost2 = patch.Patch(color='#a6a6a6', label='Tile cost 2')
+        arc_cost3 = patch.Patch(color='#606060', label='Tile cost 3')
+        arc_cost4 = patch.Patch(color='#242424', label='Tile cost 4')
+        handles = [start, goal, wall, explored, best_path, arc_cost1, arc_cost2, arc_cost3, arc_cost4]
 
         plt.title(label='A* on task ' + str(self.task))
-        plt.legend(loc='center left', bbox_to_anchor=(1, 0.5), handles=[start, goal, wall, arc_cost, explored, best_path])
+        plt.legend(loc='center left', bbox_to_anchor=(1, 0.5), handles=handles)
         plt.tight_layout()
 
         filepaths = sorted(glob.glob(root_filepath + r'\\resources\\image\\task' + str(self.task) + r'\\' + '*'))
