@@ -3,14 +3,21 @@ from .SearchNode import SearchNode
 
 import time
 
+
 class Search():
     """ Represents a search algorithm """
 
     def __init__(self, mp, root_filepath, max_iterations=1000, animate=False):
+        """
+        :param mp: Object of type Map
+        :param root_filepath: Filepath to root of project
+        :param max_iterations: Max iterations of the agenda loop. Mostly in case the algorithm works incorrectly.
+        :param animate: True/False. Weather or not to generate animations, as this is relatively time-consuming.
+        """
         self.mp = mp
         self.goal_pos = tuple(self.mp.get_goal_pos())
-        self.open_nodes = []
-        self.closed_nodes = []
+        self.open_nodes = []        # Represents nodes that are yet to be explored
+        self.closed_nodes = []      # Represents nodes that have been explored
         self.old_closed_nodes = []  # Used to get delta_closed for faster image gen
         self.pos_to_obj = {}
         self.root_filepath = root_filepath
@@ -49,7 +56,7 @@ class Search():
                 if s_pos in self.pos_to_obj:
                     s = self.pos_to_obj[s_pos]  # Might have to create other variable instead
                     x.kids.append(s)
-                else:   # Construct new node
+                else:  # Construct new node
                     g = x.g + 1
                     h = self.h(s_pos)
                     f = g + h
@@ -74,7 +81,7 @@ class Search():
         start_time = time.time()
         best_path = []
         old_best_path = []
-        self.save_img(best_path, old_best_path, 'a', 0)     # a for initial
+        self.save_img(best_path, old_best_path, 'a', 0)  # a for initial
         goal = self.best_first_search()
         print('Goal reached!')
         best_path.append(goal.pos)
@@ -86,12 +93,12 @@ class Search():
             iterations += 1
             best_path.append(parent.pos)
             if self.animate:
-                self.save_img(best_path, old_best_path, 'e', iterations)    # e for path
+                self.save_img(best_path, old_best_path, 'e', iterations)  # e for path
             parent = parent.parent
         best_path.reverse()
         print('Best path found!')
         for i in range(0, 40):
-            self.save_img(best_path, old_best_path, 'f', i)     # f for finish, some extra frames to pause at finish
+            self.save_img(best_path, old_best_path, 'f', i)  # f for finish, some extra frames to pause at finish
         if self.animate:
             self.mp.animate_search(self.root_filepath)
         print("--- %s seconds --- TOTAL PROGRAM TIME FOR TASK" % (time.time() - start_time) + str(self.mp.task) + '\n')
@@ -119,6 +126,14 @@ class Search():
         return abs(b[0] - a[0]) + abs(b[1] - a[1])
 
     def get_arc_cost(self, a, b):
+        """
+        Calculates arc-cost between two SearchNode.
+        In our implementation only the arc-cost of b is of relevance.
+        Input a is only kept in case of change in implementation.
+        :param a: SearchNode
+        :param b: SearchNode
+        :return: arc-cost
+        """
         return self.mp.int_map[b[0], b[1]]
 
     def __sort_open(self):
