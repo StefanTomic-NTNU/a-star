@@ -3,16 +3,21 @@ import numpy as np
 np.set_printoptions(threshold=np.inf, linewidth=300)
 import time
 
-import os
-import glob
 import pandas as pd
 from PIL import Image
 
+# Imports for animation and file-handling:
+import glob
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
+import matplotlib.animation as an
+import matplotlib.patches as patch
 
 class Map_Obj():
     def __init__(self, task=1, resources_path=''):
         self.start_pos, self.goal_pos, self.end_goal_pos, self.path_to_map = self.fill_critical_positions(
             task)
+        self.task = task    # Attribute added for ease of file-handling
         self.int_map, self.str_map = self.read_map(resources_path + self.path_to_map)
         self.tmp_cell_value = self.get_cell_value(self.goal_pos)
         self.set_cell_value(self.start_pos, ' S ')
@@ -28,7 +33,7 @@ class Map_Obj():
         """
         # Read map from provided csv file
         df = pd.read_csv(path, index_col=None,
-                         header=None)  #,error_bad_lines=False)
+                         header=None)  # ,error_bad_lines=False)
         # Convert pandas dataframe to numpy array
         data = df.values
         # Convert numpy array to string to make it more human readable
@@ -169,7 +174,7 @@ class Map_Obj():
                 # Move current goal position
                 move = self.pick_move()
                 self.move_goal_pos(move)
-                #print(self.goal_pos)
+                # print(self.goal_pos)
         self.tick_counter += 1
 
         return self.goal_pos
@@ -250,8 +255,8 @@ class Map_Obj():
         assert self.int_map[pos[0], pos[1]] != -1
         result = []
         n = [0, 1, 0, -1, 0]
-        for i in range(0, len(n)-1):
-            adj_pos = (pos[0]+n[i], pos[1]+n[i+1])
+        for i in range(0, len(n) - 1):
+            adj_pos = (pos[0] + n[i], pos[1] + n[i + 1])
             if self.int_map[adj_pos[0], adj_pos[1]] != -1:
                 result.append(adj_pos)
         return result
@@ -265,7 +270,7 @@ class Map_Obj():
         for pos in path:
             pass
 
-    def save_map(self, str_map, nr, filepath):
+    def save_map(self, str_map, nr, root_filepath):
         """
         A function used to draw the map as an image and show it.
         :param str_map: map to use
@@ -297,27 +302,95 @@ class Map_Obj():
         }
         # Go through image and set pixel color for every position
         set_pixel = time.time()
-        for y in range(height):     # f.eks 1-100
+        for y in range(height):  # f.eks 1-100
             for x in range(width):  # f.eks 1-100
                 if str_map[y][x] not in colors: continue
-                for i in range(scale):      # 20
+                for i in range(scale):  # 20
                     for j in range(scale):  # 20
                         pixels[x * scale + i,
                                y * scale + j] = colors[str_map[y][x]]
 
-
         print("--- %s seconds --- SET PIXEL" % (time.time() - set_pixel))
         # Save image
         save = time.time()
-        fp = filepath + r'\\resources\\images\\frame' + str(nr) + '.png'
+        fp = root_filepath + r'\\resources\\image\\task' + str(self.task) + r'\\frame' + str(nr) + '.png'
         print(fp)
         image.save(fp, 'png')
         print("--- %s seconds --- SAVE" % (time.time() - save))
 
+    def save_map_chained(self, str_map, extra, nr, root_filepath, delta_closed, delta_path):
+        """
+        Generates images from str map, but saves time by only being concerned about
+        what has changes since last iteration
+        :param str_map:
+        :param extra: extra info for filename
+        :param nr:
+        :param root_filepath:
+        :param delta:
+        :return:
+        """
+        width = str_map.shape[1]
+        height = str_map.shape[0]
+
+        start_tuple = tuple(self.start_pos)
+        goal_tuple = tuple(self.goal_pos)
+
+        # Define scale of the image
+        scale = 20
+
+        chained_img = True
+        try:
+            fp_old = root_filepath + r'\\resources\\image\\task' + str(self.task) + r'\\frame_' + extra + str(nr - 1).rjust(4, '0') + '.png'
+            image = Image.open(fp_old)
+        except FileNotFoundError:
+            chained_img = False
+            image = Image.new('RGB', (width * scale, height * scale),
+                              (255, 255, 0))
+
+        pixels = image.load()
+
+        colors = {
+            ' # ': (211, 33, 45),
+            ' . ': (215, 215, 215),
+            ' , ': (166, 166, 166),
+            ' : ': (96, 96, 96),
+            ' ; ': (36, 36, 36),
+            ' S ': (255, 0, 255),
+            ' G ': (0, 128, 255),
+            ' E ': (255, 123, 27),
+            ' P ': (3, 223, 159)
+        }
+
+        if not chained_img:
+            for y in range(height):
+                for x in range(width):
+                    if str_map[y][x] not in colors: continue
+                    for i in range(scale):
+                        for j in range(scale):
+                            pixels[x * scale + i,
+                                   y * scale + j] = colors[str_map[y][x]]
+
+        else:
+            for (y, x) in delta_closed:
+                if (y, x) == start_tuple or (y, x) == goal_tuple: continue
+                for i in range(scale):
+                    for j in range(scale):
+                        pixels[x * scale + i,
+                               y * scale + j] = (255, 123, 27)
+
+            for (y, x) in delta_path:
+                if (y, x) == start_tuple or (y, x) == goal_tuple: continue
+                for i in range(scale):
+                    for j in range(scale):
+                        pixels[x * scale + i,
+                               y * scale + j] = (3, 223, 159)
+
+        fp = root_filepath + r'\\resources\\image\\task' + str(self.task) + r'\\frame_' + extra + str(nr).rjust(4, '0') + '.png'
+        image.save(fp, 'png')
+
     def incorporate_search(self, str_map, searched_pos, path):
         start = tuple(self.start_pos)
         goal = tuple(self.goal_pos)
-        print(searched_pos)
         for y, x_list in enumerate(str_map):
             for x, value in enumerate(x_list):
                 if (y, x) in searched_pos and (y, x) != start and (y, x) != goal:
@@ -329,14 +402,34 @@ class Map_Obj():
                         str_map[y][x] = ' P '
         return str_map
 
-    def animate_search(self, filepath):
+    def animate_search(self, root_filepath):
+        fp_out = root_filepath + r'\\resources\\gif\\task' + str(self.task) + r'\\animation.gif'
 
-        # filepaths
-        fp_in = filepath + r'\\resources\\images\\frame*' + '.png'
-        fp_out = filepath + r'\\resources\\gifs\\animation' + '.GIF'
+        figure = plt.figure(figsize=(8, 7))
+        plt.xticks([]), plt.yticks([])
 
-        # https://pillow.readthedocs.io/en/stable/handbook/image-file-formats.html#gif
-        img, *imgs = [Image.open(f) for f in sorted(glob.glob(fp_in))]
-        img.save(fp=fp_out, format='GIF', append_images=imgs, interlace=False,
-                 comment='A* algorithm', optimize=False,
-                 save_all=True, duration=1000, loop=0)
+        start = patch.Patch(color='purple', label='Start')
+        goal = patch.Patch(color='blue', label='Goal')
+        wall = patch.Patch(color='red', label='Wall')
+        arc_cost = patch.Patch(color='gray', label='Arch cost, \ndarker is higher')
+        explored = patch.Patch(color='orange', label='Explored')
+        best_path = patch.Patch(color='turquoise', label='Best path')
+
+        plt.title(label='A* on task ' + str(self.task))
+        plt.legend(loc='center left', bbox_to_anchor=(1, 0.5), handles=[start, goal, wall, arc_cost, explored, best_path])
+        plt.tight_layout()
+
+        filepaths = sorted(glob.glob(root_filepath + r'\\resources\\image\\task' + str(self.task) + r'\\' + '*'))
+
+        img = plt.imread(filepaths[0])
+        imgplot = plt.imshow(img, interpolation='nearest')
+
+        def load_imgplot(frame, *fargs):
+            print(filepaths[frame])
+            img = mpimg.imread(filepaths[frame])
+            imgplot.set_data(img)
+            return imgplot
+
+        anim = an.FuncAnimation(figure, load_imgplot, frames=len(filepaths), interval=24, repeat=True)
+
+        anim.save(fp_out)

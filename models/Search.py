@@ -7,13 +7,14 @@ import time
 class Search():
     """ Represents a search algorithm """
 
-    def __init__(self, mp, filepath, max_iterations=1000, animate=False):
+    def __init__(self, mp, root_filepath, max_iterations=1000, animate=False):
         self.mp = mp
         self.goal_pos = tuple(self.mp.get_goal_pos())
         self.open_nodes = []
         self.closed_nodes = []
+        self.old_closed_nodes = []  # Used to get delta_closed for faster image gen
         self.pos_to_obj = {}
-        self.filepath = filepath
+        self.root_filepath = root_filepath
         self.max_iterations = max_iterations
         self.animate = animate
 
@@ -34,9 +35,9 @@ class Search():
         # Agenda loop:
         iterations = 0
         while iterations < self.max_iterations:
-            iterations += 1
             if self.animate:
-                self.save_img(self.filepath, iterations)
+                self.old_closed_nodes = self.closed_nodes.copy()
+            iterations += 1
             assert self.open_nodes  # Throws exception if array is empty
             x = self.pop_open()  # Pops open node with lowest cost
             self.push_to_closed(x)
@@ -62,25 +63,31 @@ class Search():
                     self.attach_and_eval(s, x)
                     if s in self.closed_nodes:
                         self.propagate_path_improvements(s)
+            if self.animate:
+                self.save_img([], [], 'c', iterations)  # c for before path is found
 
     def find_best_path(self):
         start_time = time.time()
         best_path = []
-        self.save_img(best_path, self.max_iterations*3)
+        old_best_path = []
+        self.save_img(best_path, old_best_path, 'a', 0)     # a for initial
         goal = self.best_first_search()
         best_path.append(goal.pos)
         parent = goal.parent
         iterations = self.max_iterations    # To distinguish between solution and search-frames
         while parent:
-            iterations += 1
             if self.animate:
-                self.save_img(best_path, iterations)
+                old_best_path = best_path.copy()
+            iterations += 1
             best_path.append(parent.pos)
+            if self.animate:
+                self.save_img(best_path, old_best_path, 'e', iterations)    # e for path
             parent = parent.parent
         best_path.reverse()
-        self.save_img(best_path, iterations*2)
-         # if self.animate:
-        # self.mp.animate_search(self.filepath)
+        for i in range(0, 40):
+            self.save_img(best_path, old_best_path, 'f', i)     # f for finish, some extra frames to pause at finish
+        if self.animate:
+            self.mp.animate_search(self.root_filepath)
         print("--- %s seconds --- TOTAL ALGO TIME" % (time.time() - start_time))
         return best_path
 
@@ -125,10 +132,21 @@ class Search():
         """ Adds SearchNode to open """
         self.closed_nodes.append(node)
 
-    def save_img(self, path, nr):
+    def save_img(self, best_path, old_best_path, extra, nr):
         closed_nodes_pos = [node.pos for node in self.closed_nodes]
-        str_map = self.mp.incorporate_search(self.mp.str_map, closed_nodes_pos, path)
-        print(str_map)
-        self.mp.save_map(str_map, nr, self.filepath)
+        str_map = self.mp.incorporate_search(self.mp.str_map, closed_nodes_pos, best_path)
+
+        # Get delta_closed
+        closed_nodes_set = set(self.closed_nodes)
+        old_closed_nodes_set = set(self.old_closed_nodes)
+        delta_closed = closed_nodes_set.difference(old_closed_nodes_set)
+        delta_closed = [node.pos for node in delta_closed]
+
+        # Get delta_path
+        best_path_set = set(best_path)
+        old_best_path_set = set(old_best_path)
+        delta_path = best_path_set.difference(old_best_path_set)
+
+        self.mp.save_map_chained(str_map, extra, nr, self.root_filepath, delta_closed, delta_path)
 
 
