@@ -22,14 +22,21 @@ In task 1 all the arc-costs were constant.
 
 ### Task 2
 
-![Search process for task 1](./resources/gif/task2/animation.gif)
+![Search process for task 2](./resources/gif/task2/animation.gif)
 
 Task 2 is the same as task 1, just with different start- and goal positions.
 
 
 ### Task 3
 
-![Search process for task 1](./resources/gif/task3/animation.gif)
+![Search process for task 3](./resources/gif/task3/animation.gif)
 
 The map used in task 3 has varying arc-costs. 
+
+
+### Task 4
+
+![Search process for task 4](./resources/gif/task4/animation.gif)
+
+Similar to task 3, but with more extreme arc-costs.
 
