@@ -1,7 +1,6 @@
 import numpy as np
 
 np.set_printoptions(threshold=np.inf, linewidth=300)
-import time
 
 import pandas as pd
 from PIL import Image
@@ -261,73 +260,17 @@ class Map_Obj():
                 result.append(adj_pos)
         return result
 
-    def visualize_path(self, path):
-        """
-        A function used to animate a path on a map
-        :param: path: list of tuples representing x,y coordinates of path
-        :return: nothing
-        """
-        for pos in path:
-            pass
-
-    def save_map(self, str_map, nr, root_filepath):
-        """
-        A function used to draw the map as an image and show it.
-        :param str_map: map to use
-        :param nr: image-number (iteration)
-        :return: nothing.
-        """
-        width = str_map.shape[1]
-        height = str_map.shape[0]
-        # Define scale of the image
-        scale = 20
-        # Create an all-yellow image
-        image = Image.new('RGB', (width * scale, height * scale),
-                          (255, 255, 0))
-        # Load image
-        pixels = image.load()
-
-        # Define what colors to give to different values of the string map (undefined values will remain yellow, this is
-        # how the yellow path is painted)
-        colors = {
-            ' # ': (211, 33, 45),
-            ' . ': (215, 215, 215),
-            ' , ': (166, 166, 166),
-            ' : ': (96, 96, 96),
-            ' ; ': (36, 36, 36),
-            ' S ': (255, 0, 255),
-            ' G ': (0, 128, 255),
-            ' E ': (255, 123, 27),
-            ' P ': (3, 223, 159)
-        }
-        # Go through image and set pixel color for every position
-        set_pixel = time.time()
-        for y in range(height):  # f.eks 1-100
-            for x in range(width):  # f.eks 1-100
-                if str_map[y][x] not in colors: continue
-                for i in range(scale):  # 20
-                    for j in range(scale):  # 20
-                        pixels[x * scale + i,
-                               y * scale + j] = colors[str_map[y][x]]
-
-        print("--- %s seconds --- SET PIXEL" % (time.time() - set_pixel))
-        # Save image
-        save = time.time()
-        fp = root_filepath + r'\\resources\\image\\task' + str(self.task) + r'\\frame' + str(nr) + '.png'
-        print(fp)
-        image.save(fp, 'png')
-        print("--- %s seconds --- SAVE" % (time.time() - save))
-
     def save_map_chained(self, str_map, extra, nr, root_filepath, delta_closed, delta_path):
         """
         Generates images from str map, but saves time by only being concerned about
         what has changes since last iteration
-        :param str_map:
-        :param extra: extra info for filename
-        :param nr:
-        :param root_filepath:
-        :param delta:
-        :return:
+        :param str_map: String of map
+        :param extra: Extra character used in filenames to distinguish the different phases of the search
+        :param nr: Frame nr
+        :param root_filepath: Filepath to root of project
+        :param delta_closed: Change in closed_nodes list since last frame
+        :param delta_path: Change in best_path list since last frame
+        :return: Nothing
         """
         width = str_map.shape[1]
         height = str_map.shape[0]
@@ -389,6 +332,13 @@ class Map_Obj():
         image.save(fp, 'png')
 
     def incorporate_search(self, str_map, searched_pos, path):
+        """
+        Incorporates the search-process into provided string map. Used for generating images/frames
+        :param str_map: string map
+        :param searched_pos: searched positions
+        :param path: found path
+        :return: Modified string map
+        """
         start = tuple(self.start_pos)
         goal = tuple(self.goal_pos)
         for y, x_list in enumerate(str_map):
@@ -403,6 +353,13 @@ class Map_Obj():
         return str_map
 
     def animate_search(self, root_filepath):
+        """
+        Animates images in resources into gif
+        :param root_filepath: Filepath to root of project
+        :return: Nothing
+        """
+        print('Animating')
+
         fp_out = root_filepath + r'\\resources\\gif\\task' + str(self.task) + r'\\animation.gif'
 
         figure = plt.figure(figsize=(8, 7))
@@ -425,7 +382,6 @@ class Map_Obj():
         imgplot = plt.imshow(img, interpolation='nearest')
 
         def load_imgplot(frame, *fargs):
-            print(filepaths[frame])
             img = mpimg.imread(filepaths[frame])
             imgplot.set_data(img)
             return imgplot
