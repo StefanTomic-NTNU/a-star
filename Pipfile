@@ -5,12 +5,11 @@ name = "pypi"
 
 [packages]
 numpy = "*"
+pillow = "*"
 pandas = "*"
 matplotlib = "*"
-Pillow = "*"
-glob = "*"
 
 [dev-packages]
 
 [requires]
-python_version = "3.9"
+python_version = "3.10"

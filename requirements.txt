@@ -2,4 +2,3 @@ numpy
 pillow
 pandas
 matplotlib
-glob

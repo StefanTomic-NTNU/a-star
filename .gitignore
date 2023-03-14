@@ -1,3 +1,5 @@
 # IDE
 .idea/
 .dist/
+__pycache__/
+image/
