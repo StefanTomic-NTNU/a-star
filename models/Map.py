@@ -1,17 +1,23 @@
 import numpy as np
 
 np.set_printoptions(threshold=np.inf, linewidth=300)
-import time
 
 import pandas as pd
 from PIL import Image
 
+# Imports for animation and file-handling:
+import glob
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
+import matplotlib.animation as an
+import matplotlib.patches as patch
 
 class Map_Obj():
-    def __init__(self, task=1):
+    def __init__(self, task=1, resources_path=''):
         self.start_pos, self.goal_pos, self.end_goal_pos, self.path_to_map = self.fill_critical_positions(
             task)
-        self.int_map, self.str_map = self.read_map(self.path_to_map)
+        self.task = task    # Attribute added for ease of file-handling
+        self.int_map, self.str_map = self.read_map(resources_path + self.path_to_map)
         self.tmp_cell_value = self.get_cell_value(self.goal_pos)
         self.set_cell_value(self.start_pos, ' S ')
         self.set_cell_value(self.goal_pos, ' G ')
@@ -26,7 +32,7 @@ class Map_Obj():
         """
         # Read map from provided csv file
         df = pd.read_csv(path, index_col=None,
-                         header=None)  #,error_bad_lines=False)
+                         header=None)  # ,error_bad_lines=False)
         # Convert pandas dataframe to numpy array
         data = df.values
         # Convert numpy array to string to make it more human readable
@@ -167,7 +173,7 @@ class Map_Obj():
                 # Move current goal position
                 move = self.pick_move()
                 self.move_goal_pos(move)
-                #print(self.goal_pos)
+                # print(self.goal_pos)
         self.tick_counter += 1
 
         return self.goal_pos
@@ -238,3 +244,152 @@ class Map_Obj():
                                y * scale + j] = colors[map[y][x]]
         # Show image
         image.show()
+
+    def get_adjacent_pos(self, pos):
+        """
+        A function used to get positions adjacent to given position (kids)
+        :param: pos: tuple representing x,y coordinates
+        :return: position of adjacent (non-negative) nodes
+        """
+        assert self.int_map[pos[0], pos[1]] != -1
+        result = []
+        n = [0, 1, 0, -1, 0]
+        for i in range(0, len(n) - 1):
+            adj_pos = (pos[0] + n[i], pos[1] + n[i + 1])
+            if self.int_map[adj_pos[0], adj_pos[1]] != -1:
+                result.append(adj_pos)
+        return result
+
+    def save_map_chained(self, str_map, extra, nr, root_filepath, delta_closed, delta_path):
+        """
+        Generates images from str map, but saves time by only being concerned about
+        what has changes since last iteration
+        :param str_map: String of map
+        :param extra: Extra character used in filenames to distinguish the different phases of the search
+        :param nr: Frame nr
+        :param root_filepath: Filepath to root of project
+        :param delta_closed: Change in closed_nodes list since last frame
+        :param delta_path: Change in best_path list since last frame
+        :return: Nothing
+        """
+        width = str_map.shape[1]
+        height = str_map.shape[0]
+
+        start_tuple = tuple(self.start_pos)
+        goal_tuple = tuple(self.goal_pos)
+
+        # Define scale of the image
+        scale = 20
+
+        chained_img = True
+        try:
+            fp_old = root_filepath + r'\\resources\\image\\task' + str(self.task) + r'\\frame_' + extra + str(nr - 1).rjust(4, '0') + '.png'
+            image = Image.open(fp_old)
+        except FileNotFoundError:
+            chained_img = False
+            image = Image.new('RGB', (width * scale, height * scale),
+                              (255, 255, 0))
+
+        pixels = image.load()
+
+        colors = {
+            ' # ': (211, 33, 45),
+            ' . ': (215, 215, 215),
+            ' , ': (166, 166, 166),
+            ' : ': (96, 96, 96),
+            ' ; ': (36, 36, 36),
+            ' S ': (255, 0, 255),
+            ' G ': (0, 128, 255),
+            ' E ': (255, 123, 27),
+            ' P ': (3, 223, 159)
+        }
+
+        if not chained_img:
+            for y in range(height):
+                for x in range(width):
+                    if str_map[y][x] not in colors: continue
+                    for i in range(scale):
+                        for j in range(scale):
+                            pixels[x * scale + i,
+                                   y * scale + j] = colors[str_map[y][x]]
+
+        else:
+            for (y, x) in delta_closed:
+                if (y, x) == start_tuple or (y, x) == goal_tuple: continue
+                for i in range(scale):
+                    for j in range(scale):
+                        pixels[x * scale + i,
+                               y * scale + j] = (255, 123, 27)
+
+            for (y, x) in delta_path:
+                if (y, x) == start_tuple or (y, x) == goal_tuple: continue
+                for i in range(scale):
+                    for j in range(scale):
+                        pixels[x * scale + i,
+                               y * scale + j] = (3, 223, 159)
+
+        fp = root_filepath + r'\\resources\\image\\task' + str(self.task) + r'\\frame_' + extra + str(nr).rjust(4, '0') + '.png'
+        image.save(fp, 'png')
+
+    def incorporate_search(self, str_map, searched_pos, path):
+        """
+        Incorporates the search-process into provided string map. Used for generating images/frames
+        :param str_map: string map
+        :param searched_pos: searched positions
+        :param path: found path
+        :return: Modified string map
+        """
+        start = tuple(self.start_pos)
+        goal = tuple(self.goal_pos)
+        for y, x_list in enumerate(str_map):
+            for x, value in enumerate(x_list):
+                if (y, x) in searched_pos and (y, x) != start and (y, x) != goal:
+                    str_map[y][x] = ' E '
+        if path:
+            for y, x_list in enumerate(str_map):
+                for x, value in enumerate(x_list):
+                    if (y, x) in path and (y, x) != start and (y, x) != goal:
+                        str_map[y][x] = ' P '
+        return str_map
+
+    def animate_search(self, root_filepath):
+        """
+        Animates images in resources into gif
+        :param root_filepath: Filepath to root of project
+        :return: Nothing
+        """
+        print('Animating..')
+
+        fp_out = root_filepath + r'\\resources\\gif\\task' + str(self.task) + r'\\animation.gif'
+
+        figure = plt.figure(figsize=(8, 7))
+        plt.xticks([]), plt.yticks([])
+
+        start = patch.Patch(color='#ff00ff', label='Start')
+        goal = patch.Patch(color='#0080ff', label='Goal')
+        wall = patch.Patch(color='#d3212d', label='Wall')
+        explored = patch.Patch(color='#ff7b1b', label='Explored')
+        best_path = patch.Patch(color='#03df9f', label='Best path')
+        arc_cost1 = patch.Patch(color='#d7d7d7', label='Tile cost 1')
+        arc_cost2 = patch.Patch(color='#a6a6a6', label='Tile cost 2')
+        arc_cost3 = patch.Patch(color='#606060', label='Tile cost 3')
+        arc_cost4 = patch.Patch(color='#242424', label='Tile cost 4')
+        handles = [start, goal, wall, explored, best_path, arc_cost1, arc_cost2, arc_cost3, arc_cost4]
+
+        plt.title(label='A* on task ' + str(self.task))
+        plt.legend(loc='center left', bbox_to_anchor=(1, 0.5), handles=handles)
+        plt.tight_layout()
+
+        filepaths = sorted(glob.glob(root_filepath + r'\\resources\\image\\task' + str(self.task) + r'\\' + '*'))
+
+        img = plt.imread(filepaths[0])
+        imgplot = plt.imshow(img, interpolation='nearest')
+
+        def load_imgplot(frame, *fargs):
+            img = mpimg.imread(filepaths[frame])
+            imgplot.set_data(img)
+            return imgplot
+
+        anim = an.FuncAnimation(figure, load_imgplot, frames=len(filepaths), interval=24, repeat=True)
+
+        anim.save(fp_out)
