@@ -39,4 +39,3 @@ The map used in task 3 has varying arc-costs.
 ![Search process for task 4](./resources/gif/task4/animation.gif)
 
 Similar to task 3, but with more extreme arc-costs.
-
